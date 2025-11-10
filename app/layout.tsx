@@ -10,8 +10,11 @@ import "./globals.css";
 // Clerk 인증(로그인/회원관리) 기능을 제공하는 Provider import
 import { ClerkProvider } from "@clerk/nextjs";
 
+import { Toaster } from "sonner";
+
 // React Query를 전역적으로 사용할 수 있도록 해주는 Provider import
 import { QueryProvider } from "@/providers/query-providers";
+import { SheetProvider } from "@/providers/sheet-provider";
 
 // Inter 폰트 설정 (latin 서브셋만 로드)
 // 반환된 객체의 className을 body 태그에 적용해 폰트를 전역으로 설정
@@ -38,7 +41,11 @@ export default function RootLayout({
         {/* body에 Inter 폰트를 적용하고, QueryProvider로 React Query 기능을 전역 제공 */}
         <body className={inter.className}>
           {/* QueryProvider: 서버 상태 관리(TanStack Query)를 앱 전역에 공급 */}
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            <SheetProvider />
+            <Toaster />
+            {children}
+          </QueryProvider>
         </body>
       </html>
     </ClerkProvider>
