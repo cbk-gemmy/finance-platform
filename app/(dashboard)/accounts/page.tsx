@@ -105,6 +105,7 @@ const AccountsPage = () => {
             columns={columns} // 컬럼 정의 (columns.ts에서 가져옴)
             data={data} // 테이블에 표시할 데이터
             filterKey="email" // email 컬럼 기준으로 필터링 가능
+            onDelete={() => {}}
           />
         </CardContent>
       </Card>
