@@ -14,7 +14,7 @@ import { Toaster } from "sonner";
 
 // React Query를 전역적으로 사용할 수 있도록 해주는 Provider import
 import { QueryProvider } from "@/providers/query-providers";
-import { SheetProvider } from "@/providers/sheet-provider";
+import SheetProvider from "@/providers/sheet-provider";
 
 // Inter 폰트 설정 (latin 서브셋만 로드)
 // 반환된 객체의 className을 body 태그에 적용해 폰트를 전역으로 설정
