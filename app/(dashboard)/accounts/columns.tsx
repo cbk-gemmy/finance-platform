@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"; // shadcn UI의 체크박�
 
 import { InferResponseType } from "hono"; // Hono 타입 유추 유틸리티
 import { client } from "@/lib/hono"; // Hono 클라이언트 인스턴스
+import { Actions } from "./actions";
 
 // -------------------------------------------------------
 // ResponseType 타입 정의
@@ -78,10 +79,8 @@ export const columns: ColumnDef<ResponseType>[] = [
     // cell: 기본적으로 name 값을 자동 렌더링
   },
 
-  // (3) 금액(Amount) 컬럼 -------------------------------------------------
   {
-    accessorKey: "amount", // ResponseType 객체의 amount 필드와 연결
-    header: "Amount", // 헤더에 단순히 "Amount" 텍스트 표시
-    // cell: 기본적으로 row.original.amount 값을 렌더링
+    id: "actions",
+    cell: ({ row }) => <Actions id={row.original.id} />,
   },
 ];

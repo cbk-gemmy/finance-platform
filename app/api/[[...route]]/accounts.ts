@@ -19,14 +19,14 @@ import { accounts, insertAccountSchema } from "@/db/schema";
 import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
 
 // Hono와 Zod를 함께 사용하기 위한 유효성 검사 미들웨어 import
-// → 요청의 body(json)를 자동으로 검사하고, 스키마에 맞지 않으면 400 에러를 반환함
+// → 요청의 body(json), param 등을 자동 검사하고 스키마 불일치 시 400 에러 반환
 import { zValidator } from "@hono/zod-validator";
 
 // cuid2 라이브러리의 createId 함수 import
 // → 충돌 가능성이 매우 낮은 고유 ID를 생성하기 위해 사용 (UUID 대체용)
 import { createId } from "@paralleldrive/cuid2";
 
-// zod 라이브러리 — 요청 body의 구조를 정의할 때 사용
+// zod 라이브러리 — 요청 파라미터 및 body 구조를 정의할 때 사용
 import { z } from "zod";
 
 // ---------------------------------------------------------
@@ -60,6 +60,55 @@ const app = new Hono()
   })
 
   // -------------------------------------------------------
+  // GET 요청 핸들러: 특정 ID의 계정 상세 조회
+  // -------------------------------------------------------
+  .get(
+    "/:id",
+    clerkMiddleware(),
+    // zValidator: URL 파라미터(id)가 유효한 문자열인지 검사
+    zValidator(
+      "param",
+      z.object({
+        id: z.string().optional(), // id는 선택적 문자열
+      })
+    ),
+    async (c) => {
+      const auth = getAuth(c); // 인증 정보 가져오기
+      const { id } = c.req.valid("param"); // 유효성 검사 통과된 파라미터 추출
+
+      // id가 누락된 경우 400 Bad Request 반환
+      if (!id) {
+        return c.json({ error: "Missing id" }, 400);
+      }
+
+      // 인증되지 않은 사용자일 경우 401 반환
+      if (!auth?.userId) {
+        return c.json({ error: "Unauthorized" }, 401);
+      }
+
+      const userId = auth.userId as string;
+
+      // 해당 사용자(userId)의 특정 id 계정만 조회
+      // SELECT id, name FROM accounts WHERE userId = ? AND id = ?;
+      const [data] = await db
+        .select({
+          id: accounts.id,
+          name: accounts.name,
+        })
+        .from(accounts)
+        .where(and(eq(accounts.userId, userId), eq(accounts.id, id)));
+
+      // 데이터가 없을 경우 404 Not Found 반환
+      if (!data) {
+        return c.json({ error: "Not found" }, 404);
+      }
+
+      // 조회 성공 시 JSON 응답
+      return c.json({ data });
+    }
+  )
+
+  // -------------------------------------------------------
   // POST 요청 핸들러: 새 계정 생성
   // -------------------------------------------------------
   .post(
@@ -76,18 +125,17 @@ const app = new Hono()
       })
     ),
 
-    // 실제 POST 요청 처리 로직
     async (c) => {
       const auth = getAuth(c); // 인증 정보 가져오기
-      const values = c.req.valid("json"); // 유효성 검증 통과한 JSON body 데이터
+      const values = c.req.valid("json"); // 유효성 검증 통과한 body 데이터
 
       // 인증되지 않은 경우 401 반환
       if (!auth?.userId) {
         return c.json({ error: "Unauthorized" }, 401);
       }
 
-      // drizzle ORM을 이용해 accounts 테이블에 새 계정 추가
-      // createId() → 고유 ID 생성
+      // drizzle ORM을 이용해 accounts 테이블에 새 계정 데이터 추가
+      // createId()로 고유 ID 생성 후 userId와 함께 저장
       const [data] = await db
         .insert(accounts)
         .values({
@@ -103,7 +151,7 @@ const app = new Hono()
   )
 
   // -------------------------------------------------------
-  // POST 요청 핸들러: 여러 계정 일괄 삭제 (bulk delete)
+  // POST 요청 핸들러: 여러 계정 일괄 삭제 (Bulk Delete)
   // -------------------------------------------------------
   .post(
     "/bulk-delete",
@@ -127,7 +175,7 @@ const app = new Hono()
       }
 
       // drizzle ORM을 이용해 다중 계정 삭제
-      // DELETE FROM accounts WHERE userId = auth.userId AND id IN (values.ids);
+      // DELETE FROM accounts WHERE userId = ? AND id IN (values.ids);
       const data = await db
         .delete(accounts)
         .where(
@@ -140,7 +188,7 @@ const app = new Hono()
           id: accounts.id, // 삭제된 항목의 id 반환
         });
 
-      // 삭제된 계정 ID 목록을 JSON 형태로 응답
+      // 삭제된 ID 목록을 JSON 형태로 응답
       return c.json({ data });
     }
   );

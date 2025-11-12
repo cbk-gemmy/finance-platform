@@ -28,9 +28,10 @@ app.onError((err, c) => {
 // 외부에서 정의한 accounts 라우트로 연결
 const routes = app.route("/accounts", accounts);
 
-// Vercel의 Edge Function에서 GET, POST 요청을 처리하도록 핸들러를 export
+// Vercel의 Edge Function에서 GET, POST, PATCH 요청을 처리하도록 핸들러를 export
 export const GET = handle(app);
 export const POST = handle(app);
+export const PATCH = handle(app);
 
 // TypeScript에서 app의 타입을 다른 파일에서 재사용할 수 있도록 export
 export type AppType = typeof routes;
